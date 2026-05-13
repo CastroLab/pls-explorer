@@ -656,6 +656,147 @@ def _coords_dataframe(X) -> pd.DataFrame:
     })
 
 
+def _coords_normalized(X) -> pd.DataFrame:
+    """Per-subject min-max normalize x and y onto [0, 1] so subjects can be
+    overlaid on a common canvas. Returns a copy of _coords_dataframe(X) with
+    new columns x_norm, y_norm.
+    """
+    df = _coords_dataframe(X).copy()
+    out = []
+    for s, sub in df.groupby("subject"):
+        sub = sub.copy()
+        for ax in ("x", "y"):
+            lo, hi = sub[ax].min(), sub[ax].max()
+            sub[f"{ax}_norm"] = (sub[ax] - lo) / (hi - lo) if hi > lo else 0.5
+        out.append(sub)
+    return pd.concat(out, ignore_index=True)
+
+
+def plot_integrated_cluster_map(
+    X,
+    title: str = "Integrated cluster topography (all subjects, normalized)",
+    marker_size: int = 9,
+) -> go.Figure:
+    """All clusters in different colors, all 4 subjects overlaid on a common
+    [0, 1] canvas via per-subject min-max normalization.
+
+    Each subject's bulb is squashed to the same square; the goal is to see
+    whether the same cluster colors land in roughly the same canvas
+    positions across subjects (= stereotyped topography).
+    """
+    df = _coords_normalized(X)
+    clusters = sorted(df["cluster"].unique())
+    fig = go.Figure()
+    for c in clusters:
+        sel = df[df["cluster"] == c]
+        fig.add_trace(go.Scatter(
+            x=sel["x_norm"], y=sel["y_norm"], mode="markers",
+            marker=dict(size=marker_size,
+                        color=QUALITATIVE_COLORS[int(c) % 10],
+                        opacity=0.55,
+                        line=dict(width=0.5, color="black")),
+            name=f"cluster {int(c)}",
+            hovertemplate=(
+                f"cluster {int(c)}<br>"
+                "subject %{customdata[0]}<br>"
+                "(x_norm, y_norm) = (%{x:.2f}, %{y:.2f})<extra></extra>"
+            ),
+            customdata=sel[["subject"]].to_numpy(),
+        ))
+    fig.update_layout(
+        title=title,
+        template="plotly_white",
+        width=620, height=620,
+        xaxis=dict(title="x (normalized within subject)", range=[-0.05, 1.05],
+                   scaleanchor="y", scaleratio=1),
+        yaxis=dict(title="y (normalized within subject)", range=[-0.05, 1.05],
+                   autorange="reversed"),
+        legend=dict(title="NMF cluster", itemsizing="constant"),
+    )
+    return fig
+
+
+def plot_integrated_top_blocks(
+    X,
+    top_blocks: list[tuple[int, int, float]],
+    title: str = "Top off-diagonal blocks, all subjects integrated",
+    marker_size: int = 10,
+) -> go.Figure:
+    """One panel per top off-diagonal block (predictor → predicted). Within
+    each panel, all 4 subjects' gloms are overlaid on a common [0, 1] canvas
+    so the spatial relationship between the predictor and predicted clusters
+    is read at a glance.
+
+    🟦 blue = predictor (low-conc cluster F)
+    🟥 red  = predicted (high-conc cluster T)
+    ⚪ gray = all other gloms
+    """
+    df = _coords_normalized(X)
+    n_pairs = len(top_blocks)
+    PRED_COLOR = QUALITATIVE_COLORS[0]
+    TGT_COLOR = QUALITATIVE_COLORS[3]
+
+    subplot_titles = [
+        f"<span style='color:{PRED_COLOR}'>low-c{cf}</span> → "
+        f"<span style='color:{TGT_COLOR}'>high-c{ct}</span>  "
+        f"‖block‖<sub>F</sub>={val:.2f}"
+        for (cf, ct, val) in top_blocks
+    ]
+    fig = make_subplots(
+        rows=1, cols=n_pairs,
+        subplot_titles=subplot_titles,
+        horizontal_spacing=0.06, shared_yaxes=True,
+    )
+    for j, (cf, ct, _) in enumerate(top_blocks, start=1):
+        df_panel = df.copy()
+        df_panel["role"] = "other"
+        df_panel.loc[df_panel["cluster"] == cf, "role"] = "predictor"
+        df_panel.loc[df_panel["cluster"] == ct, "role"] = "predicted"
+        for role, color, size, alpha in [
+            ("other", "rgba(180,180,180,0.30)", marker_size - 3, None),
+            ("predictor", PRED_COLOR, marker_size, 0.65),
+            ("predicted", TGT_COLOR, marker_size, 0.65),
+        ]:
+            sel = df_panel[df_panel["role"] == role]
+            if len(sel) == 0:
+                continue
+            marker = dict(size=size, color=color,
+                          line=dict(width=0.4, color="black"))
+            if alpha is not None:
+                marker["opacity"] = alpha
+            fig.add_trace(go.Scatter(
+                x=sel["x_norm"], y=sel["y_norm"], mode="markers",
+                marker=marker,
+                name=role,
+                legendgroup=role,
+                showlegend=(j == 1),
+                hovertemplate=(
+                    f"<b>{role}</b><br>"
+                    "subject %{customdata[1]}<br>"
+                    "cluster %{customdata[0]}<extra></extra>"
+                ),
+                customdata=sel[["cluster", "subject"]].to_numpy(),
+            ), row=1, col=j)
+        fig.update_xaxes(range=[-0.05, 1.05], scaleanchor=f"y{j if j > 1 else ''}",
+                         scaleratio=1, row=1, col=j)
+        fig.update_yaxes(range=[-0.05, 1.05], autorange=False, row=1, col=j)
+    # Flip y axes (image convention: posterior at bottom)
+    for j in range(1, n_pairs + 1):
+        fig.update_yaxes(autorange="reversed", row=1, col=j)
+    fig.update_layout(
+        title=(
+            f"{title}<br>"
+            f"<sub>Per-subject min-max normalized to [0,1]; subjects overlaid. "
+            f"<span style='color:{PRED_COLOR}'>blue = predictor</span> · "
+            f"<span style='color:{TGT_COLOR}'>red = predicted</span></sub>"
+        ),
+        template="plotly_white",
+        width=380 * n_pairs + 60, height=460,
+        legend=dict(orientation="h", yanchor="bottom", y=-0.15),
+    )
+    return fig
+
+
 def plot_vip_topography(
     X,
     vip: np.ndarray,

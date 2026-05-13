@@ -273,7 +273,32 @@ def build_notebook(variant: str) -> nbf.NotebookNode:
             "    title=f'{VARIANT}: top 3 cross-cluster blocks, x,y per subject').show()"
         ),
 
-        _md("### 6. VIP-colored topography\n\n"
+        _md("### 6. Integrated view across subjects (all 4 overlaid)\n\n"
+            "Each subject's x,y is min-max normalized within that subject so all "
+            "four bulbs land on the same `[0, 1] × [0, 1]` canvas. The point is to "
+            "see the *aggregated* topographic story without per-subject framing.\n\n"
+            "**6a. Cluster identities, integrated.** If the same cluster lands in "
+            "roughly the same canvas region across subjects, the clusters have a "
+            "stereotyped spatial home on the dorsal OB."),
+        _code(
+            "viz.plot_integrated_cluster_map(\n"
+            "    data.X,\n"
+            "    title=f'{VARIANT}: integrated cluster topography (4 subjects overlaid)'\n"
+            ").show()"
+        ),
+
+        _md("**6b. Top off-diagonal blocks, integrated.** Same three blocks as in "
+            "section 5, but with all four subjects overlaid on a single canvas per "
+            "block. Use this to judge whether the predictor (🟦) and predicted (🟥) "
+            "clusters share territory or sit in distinct regions of the bulb."),
+        _code(
+            "viz.plot_integrated_top_blocks(\n"
+            "    data.X, top_blocks=top,\n"
+            "    title=f'{VARIANT}: top 3 cross-cluster blocks, all subjects overlaid'\n"
+            ").show()"
+        ),
+
+        _md("### 7. VIP-colored topography (per subject)\n\n"
             "Where do the predictive glomeruli sit on the OB surface? Marker color = VIP, "
             "outline = cluster id."),
         _code(
