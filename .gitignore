@@ -11,3 +11,4 @@ results/
 *.png
 *.pdf
 !notebooks/figs/.gitkeep
+notebooks/reports/*.ipynb
