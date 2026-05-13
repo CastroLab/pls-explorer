@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pls-explorer"
+version = "0.1.0"
+description = "PLS analysis of paired low/high-concentration glomerular responses"
+requires-python = ">=3.9"
+dependencies = [
+    "numpy",
+    "pandas",
+    "scipy",
+    "scikit-learn",
+    "plotly",
+    "pyyaml",
+    "glom-explorer",
+]
+
+[project.optional-dependencies]
+notebook = ["jupyterlab", "ipywidgets"]
+
+[project.scripts]
+pls-explorer = "pls_explorer.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["pls_explorer*"]

@@ -1,0 +1,17 @@
+# Pareto scaling: divide by sqrt(std) instead of std. Middle ground between
+# mean-center and autoscale; common in spectroscopy/chemometrics.
+name: pareto
+data_variant: nonresponders_dropped
+log_transform: true
+scaling: pareto
+row_normalize: false
+n_components_grid: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+cv_scheme: family_stratified
+cv_n_splits: 4
+cv_random_state: 42
+n_permutations: 1000
+n_bootstrap: 1000
+relu_clip: true
+sparse_pls: false
+null2_mode: column_resample
+rng_seed: 42

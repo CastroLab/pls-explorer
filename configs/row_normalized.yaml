@@ -1,0 +1,18 @@
+# Pattern-only analysis: strip magnitude by L2-normalizing each odorant row.
+# Tests Hypothesis 2 (Best Practices §8.2): is the *relative pattern* of
+# activation across glomeruli linearly preserved, regardless of overall level?
+name: row_normalized
+data_variant: nonresponders_dropped
+log_transform: true
+scaling: mean_center
+row_normalize: true
+n_components_grid: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+cv_scheme: family_stratified
+cv_n_splits: 4
+cv_random_state: 42
+n_permutations: 1000
+n_bootstrap: 1000
+relu_clip: false      # signal can be negative after row normalization
+sparse_pls: false
+null2_mode: column_resample
+rng_seed: 42
