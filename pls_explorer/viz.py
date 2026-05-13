@@ -705,52 +705,99 @@ def plot_spatial_top_blocks(
     top_blocks: list[tuple[int, int, float]],
     title: str = "Top off-diagonal cluster blocks on OB surface",
 ) -> go.Figure:
-    """For each (cluster_from, cluster_to) pair in top_blocks, show the two
-    cluster memberships in different colors, faceted by subject.
+    """For each off-diagonal cluster block (low-conc cluster F → high-conc
+    cluster T), show the spatial positions of cluster-F and cluster-T
+    glomeruli, faceted by subject.
 
-    Layout: rows = block pairs, cols = subjects. Cluster-from in solid color,
-    cluster-to in a contrasting color, all others in light gray.
+    Reading guide
+    -------------
+    In B, rows index low-concentration glomerular features and columns index
+    high-concentration features. An off-diagonal block at (F, T) means
+    *low-conc activity in cluster F predicts high-conc activity in cluster T*.
+
+    Each row of the figure shows one such (F, T) pair. Within each subplot:
+        - blue  dots = "predictor" gloms (low-conc cluster F)
+        - red   dots = "predicted" gloms (high-conc cluster T)
+        - gray  dots = all other gloms
+
+    Same glomeruli appear in both colors across rows when a cluster shows up
+    in multiple top blocks.
     """
     coords = _coords_dataframe(X)
     subjects = sorted(coords["subject"].unique())
     n_subj = len(subjects)
     n_pairs = len(top_blocks)
+
+    # Subplot titles: leftmost column carries the cluster pair with color
+    # tags; remaining columns just label the subject.
+    PRED_COLOR = QUALITATIVE_COLORS[0]   # blue
+    TGT_COLOR = QUALITATIVE_COLORS[3]    # red
     subplot_titles = []
     for i, (cf, ct, val) in enumerate(top_blocks):
-        for s in subjects:
-            subplot_titles.append(f"{cf}→{ct} | subj {s}" if s == subjects[0] else f"subj {s}")
+        for j, s in enumerate(subjects):
+            if j == 0:
+                subplot_titles.append(
+                    f"<span style='color:{PRED_COLOR}'>low-c{cf}</span> → "
+                    f"<span style='color:{TGT_COLOR}'>high-c{ct}</span>"
+                    f"  &nbsp;‖block‖<sub>F</sub>={val:.2f}"
+                    f"  &nbsp;·  subject {s}"
+                )
+            else:
+                subplot_titles.append(f"subject {s}")
+
     fig = make_subplots(
         rows=n_pairs, cols=n_subj,
         subplot_titles=subplot_titles,
-        horizontal_spacing=0.04, vertical_spacing=0.10,
+        horizontal_spacing=0.04, vertical_spacing=0.12,
     )
 
     for i, (cf, ct, val) in enumerate(top_blocks):
         for j, s in enumerate(subjects):
             sub = coords[coords["subject"] == s].copy()
             sub["role"] = "other"
-            sub.loc[sub["cluster"] == cf, "role"] = "from"
-            sub.loc[sub["cluster"] == ct, "role"] = "to"
+            sub.loc[sub["cluster"] == cf, "role"] = "predictor"
+            sub.loc[sub["cluster"] == ct, "role"] = "predicted"
+            # When cf == ct (shouldn't happen on off-diagonals, but be safe),
+            # mark them as predictor.
             for role, color, size in [
-                ("other", "rgba(180,180,180,0.4)", 6),
-                ("from", QUALITATIVE_COLORS[0], 11),
-                ("to", QUALITATIVE_COLORS[3], 11),
+                ("other", "rgba(180,180,180,0.35)", 6),
+                ("predictor", PRED_COLOR, 11),
+                ("predicted", TGT_COLOR, 11),
             ]:
                 sel = sub[sub["role"] == role]
+                if len(sel) == 0:
+                    continue
                 fig.add_trace(go.Scatter(
                     x=sel["x"], y=sel["y"], mode="markers",
                     marker=dict(size=size, color=color,
                                 line=dict(width=0.5, color="black")),
-                    name=role if (i == 0 and j == 0) else None,
+                    name=role,
+                    legendgroup=role,
                     showlegend=(i == 0 and j == 0),
-                    hovertemplate=f"role {role}<br>cluster %{{customdata[0]}}<extra></extra>",
+                    hovertemplate=(
+                        f"<b>{role}</b><br>"
+                        f"cluster %{{customdata[0]}}<br>"
+                        f"(x, y) = (%{{x:.0f}}, %{{y:.0f}})<extra></extra>"
+                    ),
                     customdata=sel[["cluster"]].to_numpy(),
                 ), row=i + 1, col=j + 1)
             fig.update_yaxes(autorange="reversed", row=i + 1, col=j + 1)
 
     fig.update_layout(
-        title=title, template="plotly_white",
-        width=240 * n_subj + 80, height=260 * n_pairs + 80,
+        title=(
+            f"{title}<br>"
+            f"<sub>"
+            f"<span style='color:{PRED_COLOR}'>blue = predictor</span> "
+            f"(low-conc cluster, row of B) · "
+            f"<span style='color:{TGT_COLOR}'>red = predicted</span> "
+            f"(high-conc cluster, col of B)"
+            f"</sub>"
+        ),
+        template="plotly_white",
+        width=240 * n_subj + 80,
+        height=280 * n_pairs + 120,
+        legend=dict(orientation="h", yanchor="bottom", y=1.02,
+                    xanchor="right", x=1.0),
     )
     return fig
 

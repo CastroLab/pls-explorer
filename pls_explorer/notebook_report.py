@@ -254,9 +254,19 @@ def build_notebook(variant: str) -> nbf.NotebookNode:
         ),
 
         _md("### 5. Spatial overlay: top cross-class blocks on the OB surface\n\n"
-            "If the cluster-to-cluster crosstalk is between **spatially coherent** "
-            "groups of glomeruli, we see structure here. Light gray = other gloms; "
-            "blue = cluster-from; red = cluster-to. Faceted by subject."),
+            "**How to read this.** In B, rows index *low-concentration* gloms and "
+            "columns index *high-concentration* gloms. An off-diagonal block "
+            "(low-cluster F → high-cluster T) means low-conc activity in cluster F "
+            "linearly predicts high-conc activity in cluster T.\n\n"
+            "Each row of the figure highlights one such (F → T) pair on the "
+            "dorsal-OB x,y map, faceted across the four subjects:\n\n"
+            "- 🟦 **predictor** (blue) — gloms in cluster F (the low-conc predictors)\n"
+            "- 🟥 **predicted** (red) — gloms in cluster T (the high-conc targets)\n"
+            "- ⚪ **other** (gray) — every other glom\n\n"
+            "When the blue and red patches are *spatially coherent and adjacent*, "
+            "that means the cluster-to-cluster crosstalk in B has a topographic "
+            "correlate on the bulb — anatomical confirmation of the cluster-level "
+            "coding claim."),
         _code(
             "viz.plot_spatial_top_blocks(\n"
             "    data.X, top_blocks=top,\n"
