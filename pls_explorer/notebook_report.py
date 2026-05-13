@@ -193,6 +193,84 @@ def build_notebook(variant: str) -> nbf.NotebookNode:
             "                   template='plotly_white', width=720, height=420)\n"
             "fig.show()"
         ),
+
+        _md("---\n\n"
+            "# Cluster-block analysis — the killer follow-up\n\n"
+            "Tests whether B's structure is **organized by the NMF clusters**, not just "
+            "generically off-diagonal. Three artifacts:\n\n"
+            "1. **B reordered by cluster** — diagonal blocks should pop visually.\n"
+            "2. **Cluster-block summary** — 7×7 heatmap of per-block Frobenius norms; "
+            "this is the cluster-to-cluster *remixing table*.\n"
+            "3. **Permutation null** — random cluster reassignments should yield "
+            "less within-cluster energy than the real labels."),
+
+        _code(
+            "from pls_explorer.block_structure import (\n"
+            "    decompose_block_energy, permutation_null_block,\n"
+            "    top_off_diagonal_blocks,\n"
+            ")\n\n"
+            "B_real = np.load(ROOT / 'real' / 'B.npy')\n"
+            "clusters = data.glom_clusters\n\n"
+            "decomp = decompose_block_energy(B_real, clusters)\n"
+            "print(f'E_within / E_total : {decomp[\"E_within_frac\"]:.4f}')\n"
+            "print(f'E_between / E_total : {decomp[\"E_between_frac\"]:.4f}')\n"
+            "print(f'unique clusters     : {decomp[\"unique_row\"]}')"
+        ),
+
+        _md("### 1. B reordered by cluster"),
+        _code(
+            "viz.plot_B_reordered_by_cluster(\n"
+            "    B_real, clusters,\n"
+            "    title=f'{VARIANT}: B reordered by NMF cluster (real fit)').show()"
+        ),
+
+        _md("### 2. Cluster-to-cluster remixing table"),
+        _code(
+            "viz.plot_cluster_block_summary(\n"
+            "    decomp['block_norm'], decomp['unique_row'],\n"
+            "    title=f'{VARIANT}: per-block ||B||_F').show()"
+        ),
+
+        _md("### 3. Cluster-label permutation null\n\n"
+            "Shuffle which glomerulus belongs to which cluster (preserving cluster sizes) "
+            "and ask whether the observed within-cluster energy concentration is unusual. "
+            "Uses 200 permutations for a fast read; bump if needed."),
+        _code(
+            "perm = permutation_null_block(B_real, clusters, n_permutations=200, rng=42)\n"
+            "print(f'observed E_within/E_total: {perm[\"observed_within_frac\"]:.4f}')\n"
+            "print(f'null mean ± std         : {perm[\"null_within_frac\"].mean():.4f} '\n"
+            "      f'± {perm[\"null_within_frac\"].std():.4f}')\n"
+            "print(f'permutation p-value     : {perm[\"p_value\"]:.4f}')\n"
+            "viz.plot_block_permutation_null(\n"
+            "    perm['null_within_frac'], perm['observed_within_frac'], perm['p_value'],\n"
+            "    title=f'{VARIANT}: within-cluster energy vs random cluster labels').show()"
+        ),
+
+        _md("### 4. Top off-diagonal cluster blocks (cross-class crosstalk)"),
+        _code(
+            "top = top_off_diagonal_blocks(decomp['block_norm'], decomp['unique_row'], k=3)\n"
+            "for cf, ct, val in top:\n"
+            "    print(f'cluster {cf} → cluster {ct} : ||block||_F = {val:.3f}')"
+        ),
+
+        _md("### 5. Spatial overlay: top cross-class blocks on the OB surface\n\n"
+            "If the cluster-to-cluster crosstalk is between **spatially coherent** "
+            "groups of glomeruli, we see structure here. Light gray = other gloms; "
+            "blue = cluster-from; red = cluster-to. Faceted by subject."),
+        _code(
+            "viz.plot_spatial_top_blocks(\n"
+            "    data.X, top_blocks=top,\n"
+            "    title=f'{VARIANT}: top 3 cross-cluster blocks, x,y per subject').show()"
+        ),
+
+        _md("### 6. VIP-colored topography\n\n"
+            "Where do the predictive glomeruli sit on the OB surface? Marker color = VIP, "
+            "outline = cluster id."),
+        _code(
+            "viz.plot_vip_topography(\n"
+            "    data.X, vip,\n"
+            "    title=f'{VARIANT}: VIP on OB surface, per subject').show()"
+        ),
     ]
     nb["cells"] = cells
     nb["metadata"] = {

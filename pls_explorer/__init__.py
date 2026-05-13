@@ -17,5 +17,9 @@ from .selection import one_sigma_ncomp, van_der_voet_ncomp, select_ncomp
 from .permutation import permutation_q2_null
 from .bootstrap import bootstrap_B, bootstrap_VIP
 from .baselines import ClusterLinearRegression, PerGlomScaling, SimpleScaling, mean_predictor
+from .block_structure import (
+    decompose_block_energy, permutation_null_block, top_off_diagonal_blocks,
+    reorder_by_clusters,
+)
 from . import viz
 from .runner import run_variant

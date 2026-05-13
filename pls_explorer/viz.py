@@ -540,6 +540,222 @@ def plot_worst_predicted(
 
 
 # =============================================================================
+# Cluster-block analysis (the killer follow-up)
+# =============================================================================
+
+def plot_B_reordered_by_cluster(
+    B: np.ndarray,
+    clusters: np.ndarray,
+    title: str = "B reordered by cluster",
+) -> go.Figure:
+    """B with rows and cols sorted by cluster id; cluster boundaries drawn.
+
+    Diagonal blocks pop visually when the linear map is cluster-aligned.
+    """
+    from .block_structure import reorder_by_clusters
+    B_reord, _, boundaries = reorder_by_clusters(B, clusters)
+    vmax = float(np.percentile(np.abs(B_reord), 99))
+    fig = go.Figure()
+    fig.add_trace(go.Heatmap(
+        z=B_reord, colorscale="RdBu_r", zmid=0, zmin=-vmax, zmax=vmax,
+        colorbar=dict(title="B", thickness=12),
+    ))
+    for b in boundaries:
+        fig.add_shape(type="line", x0=b - 0.5, x1=b - 0.5,
+                      y0=-0.5, y1=B_reord.shape[0] - 0.5,
+                      line=dict(color="black", width=1))
+        fig.add_shape(type="line", x0=-0.5, x1=B_reord.shape[1] - 0.5,
+                      y0=b - 0.5, y1=b - 0.5,
+                      line=dict(color="black", width=1))
+    fig.update_layout(
+        title=title,
+        xaxis_title="high-conc glomerulus (sorted by cluster)",
+        yaxis_title="low-conc glomerulus (sorted by cluster)",
+        template="plotly_white",
+        width=720, height=720,
+    )
+    fig.update_yaxes(autorange="reversed")
+    return fig
+
+
+def plot_cluster_block_summary(
+    block_norm: np.ndarray,
+    unique_clusters: np.ndarray,
+    title: str = "Cluster-block summary",
+) -> go.Figure:
+    """K × K heatmap of per-cluster-block Frobenius norms.
+
+    Reads as the chemical-class-to-chemical-class crosstalk table once you
+    have identified what each cluster represents.
+    """
+    labels = [f"c{int(c)}" for c in unique_clusters]
+    fig = go.Figure()
+    fig.add_trace(go.Heatmap(
+        z=block_norm, x=labels, y=labels,
+        colorscale="Viridis", zmin=0,
+        colorbar=dict(title="‖B_block‖_F", thickness=12),
+        hovertemplate="from %{y} → to %{x}<br>norm %{z:.3f}<extra></extra>",
+    ))
+    fig.update_layout(
+        title=title,
+        xaxis_title="high-conc cluster",
+        yaxis_title="low-conc cluster",
+        template="plotly_white",
+        width=560, height=520,
+    )
+    fig.update_yaxes(autorange="reversed")
+    return fig
+
+
+def plot_block_permutation_null(
+    null_within_frac: np.ndarray,
+    observed_within_frac: float,
+    p_value: float,
+    title: str = "Cluster-label permutation null",
+) -> go.Figure:
+    """Histogram of within-cluster energy fraction under random cluster labels;
+    observed value as a vertical line."""
+    fig = go.Figure()
+    fig.add_trace(go.Histogram(
+        x=null_within_frac, nbinsx=40, name="random cluster labels",
+        marker=dict(color=QUALITATIVE_COLORS[7], opacity=0.7),
+    ))
+    fig.add_vline(x=observed_within_frac,
+                  line=dict(color=QUALITATIVE_COLORS[3], width=2.5))
+    fig.add_annotation(
+        x=observed_within_frac, y=1, xref="x", yref="paper",
+        text=f"observed = {observed_within_frac:.3f}<br>p = {p_value:.3f}",
+        showarrow=False, yanchor="top", xanchor="left",
+        bgcolor="rgba(255,255,255,0.85)", bordercolor="black",
+    )
+    fig.update_layout(
+        title=title,
+        xaxis_title="E_within / E_total",
+        yaxis_title="count",
+        template="plotly_white",
+        width=640, height=400,
+    )
+    return fig
+
+
+# =============================================================================
+# Spatial / topographic overlays
+# =============================================================================
+
+def _coords_dataframe(X) -> pd.DataFrame:
+    """Extract (subject, x, y) per glomerulus from a clustered X DataFrame.
+
+    Expects X to have column levels: subject, x, y, parent_cluster.
+    """
+    cols = X.columns
+    return pd.DataFrame({
+        "subject": cols.get_level_values("subject").astype(int).to_numpy(),
+        "x": cols.get_level_values("x").astype(float).to_numpy(),
+        "y": cols.get_level_values("y").astype(float).to_numpy(),
+        "cluster": cols.get_level_values("parent_cluster").astype(int).to_numpy(),
+    })
+
+
+def plot_vip_topography(
+    X,
+    vip: np.ndarray,
+    title: str = "VIP score on OB surface",
+) -> go.Figure:
+    """Spatial scatter of VIP scores, one panel per subject. Color = VIP,
+    outline = cluster.
+    """
+    coords = _coords_dataframe(X).copy()
+    coords["vip"] = vip
+    subjects = sorted(coords["subject"].unique())
+    n = len(subjects)
+    cols = 2
+    rows = int(np.ceil(n / cols))
+    fig = make_subplots(rows=rows, cols=cols,
+                        subplot_titles=[f"subject {s}" for s in subjects],
+                        horizontal_spacing=0.08, vertical_spacing=0.10)
+    vmax = float(np.nanpercentile(vip, 99))
+    for k, s in enumerate(subjects):
+        sub = coords[coords["subject"] == s]
+        r, c = k // cols + 1, k % cols + 1
+        fig.add_trace(go.Scatter(
+            x=sub["x"], y=sub["y"], mode="markers",
+            marker=dict(
+                size=10,
+                color=sub["vip"],
+                colorscale="Viridis", cmin=0, cmax=vmax,
+                line=dict(width=1.5,
+                          color=[QUALITATIVE_COLORS[int(c_) % 10] for c_ in sub["cluster"]]),
+                colorbar=(dict(title="VIP", thickness=12) if k == 0 else None),
+                showscale=(k == 0),
+            ),
+            hovertemplate="cluster %{customdata[0]}<br>VIP %{marker.color:.2f}<extra></extra>",
+            customdata=sub[["cluster"]].to_numpy(),
+            showlegend=False,
+        ), row=r, col=c)
+        fig.update_yaxes(autorange="reversed", row=r, col=c)
+    fig.update_layout(
+        title=title, template="plotly_white",
+        width=920, height=420 * rows,
+    )
+    return fig
+
+
+def plot_spatial_top_blocks(
+    X,
+    top_blocks: list[tuple[int, int, float]],
+    title: str = "Top off-diagonal cluster blocks on OB surface",
+) -> go.Figure:
+    """For each (cluster_from, cluster_to) pair in top_blocks, show the two
+    cluster memberships in different colors, faceted by subject.
+
+    Layout: rows = block pairs, cols = subjects. Cluster-from in solid color,
+    cluster-to in a contrasting color, all others in light gray.
+    """
+    coords = _coords_dataframe(X)
+    subjects = sorted(coords["subject"].unique())
+    n_subj = len(subjects)
+    n_pairs = len(top_blocks)
+    subplot_titles = []
+    for i, (cf, ct, val) in enumerate(top_blocks):
+        for s in subjects:
+            subplot_titles.append(f"{cf}→{ct} | subj {s}" if s == subjects[0] else f"subj {s}")
+    fig = make_subplots(
+        rows=n_pairs, cols=n_subj,
+        subplot_titles=subplot_titles,
+        horizontal_spacing=0.04, vertical_spacing=0.10,
+    )
+
+    for i, (cf, ct, val) in enumerate(top_blocks):
+        for j, s in enumerate(subjects):
+            sub = coords[coords["subject"] == s].copy()
+            sub["role"] = "other"
+            sub.loc[sub["cluster"] == cf, "role"] = "from"
+            sub.loc[sub["cluster"] == ct, "role"] = "to"
+            for role, color, size in [
+                ("other", "rgba(180,180,180,0.4)", 6),
+                ("from", QUALITATIVE_COLORS[0], 11),
+                ("to", QUALITATIVE_COLORS[3], 11),
+            ]:
+                sel = sub[sub["role"] == role]
+                fig.add_trace(go.Scatter(
+                    x=sel["x"], y=sel["y"], mode="markers",
+                    marker=dict(size=size, color=color,
+                                line=dict(width=0.5, color="black")),
+                    name=role if (i == 0 and j == 0) else None,
+                    showlegend=(i == 0 and j == 0),
+                    hovertemplate=f"role {role}<br>cluster %{{customdata[0]}}<extra></extra>",
+                    customdata=sel[["cluster"]].to_numpy(),
+                ), row=i + 1, col=j + 1)
+            fig.update_yaxes(autorange="reversed", row=i + 1, col=j + 1)
+
+    fig.update_layout(
+        title=title, template="plotly_white",
+        width=240 * n_subj + 80, height=260 * n_pairs + 80,
+    )
+    return fig
+
+
+# =============================================================================
 # Phase 2 — PLSC exploratory (used when run_plsc=True in config)
 # =============================================================================
 
