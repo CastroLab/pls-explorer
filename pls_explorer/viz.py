@@ -674,23 +674,22 @@ def _coords_normalized(X) -> pd.DataFrame:
 
 def plot_integrated_cluster_map(
     X,
-    title: str = "Integrated cluster topography (all subjects, normalized)",
+    title: str = "Integrated cluster topography (all subjects, raw x,y)",
     marker_size: int = 9,
 ) -> go.Figure:
-    """All clusters in different colors, all 4 subjects overlaid on a common
-    [0, 1] canvas via per-subject min-max normalization.
+    """All clusters in different colors, all 4 subjects overlaid in raw x,y
+    pixel coordinates (no normalization).
 
-    Each subject's bulb is squashed to the same square; the goal is to see
-    whether the same cluster colors land in roughly the same canvas
-    positions across subjects (= stereotyped topography).
+    Imaging was done in a roughly consistent field of view across subjects,
+    so raw pixel coordinates ARE the integrated canvas — no rescaling.
     """
-    df = _coords_normalized(X)
+    df = _coords_dataframe(X)
     clusters = sorted(df["cluster"].unique())
     fig = go.Figure()
     for c in clusters:
         sel = df[df["cluster"] == c]
         fig.add_trace(go.Scatter(
-            x=sel["x_norm"], y=sel["y_norm"], mode="markers",
+            x=sel["x"], y=sel["y"], mode="markers",
             marker=dict(size=marker_size,
                         color=QUALITATIVE_COLORS[int(c) % 10],
                         opacity=0.55,
@@ -699,18 +698,16 @@ def plot_integrated_cluster_map(
             hovertemplate=(
                 f"cluster {int(c)}<br>"
                 "subject %{customdata[0]}<br>"
-                "(x_norm, y_norm) = (%{x:.2f}, %{y:.2f})<extra></extra>"
+                "(x, y) = (%{x:.0f}, %{y:.0f})<extra></extra>"
             ),
             customdata=sel[["subject"]].to_numpy(),
         ))
     fig.update_layout(
         title=title,
         template="plotly_white",
-        width=620, height=620,
-        xaxis=dict(title="x (normalized within subject)", range=[-0.05, 1.05],
-                   scaleanchor="y", scaleratio=1),
-        yaxis=dict(title="y (normalized within subject)", range=[-0.05, 1.05],
-                   autorange="reversed"),
+        width=680, height=680,
+        xaxis=dict(title="x (pixels)", scaleanchor="y", scaleratio=1),
+        yaxis=dict(title="y (pixels)", autorange="reversed"),
         legend=dict(title="NMF cluster", itemsizing="constant"),
     )
     return fig
@@ -722,16 +719,14 @@ def plot_integrated_top_blocks(
     title: str = "Top off-diagonal blocks, all subjects integrated",
     marker_size: int = 10,
 ) -> go.Figure:
-    """One panel per top off-diagonal block (predictor → predicted). Within
-    each panel, all 4 subjects' gloms are overlaid on a common [0, 1] canvas
-    so the spatial relationship between the predictor and predicted clusters
-    is read at a glance.
+    """One panel per top off-diagonal block (predictor → predicted). All 4
+    subjects' gloms are overlaid in raw x,y pixel coordinates.
 
     🟦 blue = predictor (low-conc cluster F)
     🟥 red  = predicted (high-conc cluster T)
     ⚪ gray = all other gloms
     """
-    df = _coords_normalized(X)
+    df = _coords_dataframe(X)
     n_pairs = len(top_blocks)
     PRED_COLOR = QUALITATIVE_COLORS[0]
     TGT_COLOR = QUALITATIVE_COLORS[3]
@@ -765,7 +760,7 @@ def plot_integrated_top_blocks(
             if alpha is not None:
                 marker["opacity"] = alpha
             fig.add_trace(go.Scatter(
-                x=sel["x_norm"], y=sel["y_norm"], mode="markers",
+                x=sel["x"], y=sel["y"], mode="markers",
                 marker=marker,
                 name=role,
                 legendgroup=role,
@@ -777,21 +772,20 @@ def plot_integrated_top_blocks(
                 ),
                 customdata=sel[["cluster", "subject"]].to_numpy(),
             ), row=1, col=j)
-        fig.update_xaxes(range=[-0.05, 1.05], scaleanchor=f"y{j if j > 1 else ''}",
+        fig.update_xaxes(title="x (pixels)",
+                         scaleanchor=f"y{j if j > 1 else ''}",
                          scaleratio=1, row=1, col=j)
-        fig.update_yaxes(range=[-0.05, 1.05], autorange=False, row=1, col=j)
-    # Flip y axes (image convention: posterior at bottom)
-    for j in range(1, n_pairs + 1):
         fig.update_yaxes(autorange="reversed", row=1, col=j)
+    fig.update_yaxes(title="y (pixels)", row=1, col=1)
     fig.update_layout(
         title=(
             f"{title}<br>"
-            f"<sub>Per-subject min-max normalized to [0,1]; subjects overlaid. "
+            f"<sub>Raw x,y pixel coords; all 4 subjects overlaid. "
             f"<span style='color:{PRED_COLOR}'>blue = predictor</span> · "
             f"<span style='color:{TGT_COLOR}'>red = predicted</span></sub>"
         ),
         template="plotly_white",
-        width=380 * n_pairs + 60, height=460,
+        width=420 * n_pairs + 60, height=500,
         legend=dict(orientation="h", yanchor="bottom", y=-0.15),
     )
     return fig

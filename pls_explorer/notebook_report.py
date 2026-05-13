@@ -274,11 +274,11 @@ def build_notebook(variant: str) -> nbf.NotebookNode:
         ),
 
         _md("### 6. Integrated view across subjects (all 4 overlaid)\n\n"
-            "Each subject's x,y is min-max normalized within that subject so all "
-            "four bulbs land on the same `[0, 1] × [0, 1]` canvas. The point is to "
-            "see the *aggregated* topographic story without per-subject framing.\n\n"
+            "All four subjects' glomeruli plotted together in raw pixel coordinates "
+            "(no normalization). The imaging used a roughly consistent field of view "
+            "across subjects, so raw x,y *is* a common canvas.\n\n"
             "**6a. Cluster identities, integrated.** If the same cluster lands in "
-            "roughly the same canvas region across subjects, the clusters have a "
+            "roughly the same pixel region across subjects, the clusters have a "
             "stereotyped spatial home on the dorsal OB."),
         _code(
             "viz.plot_integrated_cluster_map(\n"
