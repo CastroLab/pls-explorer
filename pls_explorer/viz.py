@@ -306,26 +306,55 @@ def plot_per_glom_q2_heatmap(
     glom_clusters: Optional[np.ndarray] = None,
     title: str = "Per-glomerulus Q²",
 ) -> go.Figure:
-    """1D heatmap of Q² across glomeruli, ordered by cluster id if given."""
+    """Strip heatmap of Q² across glomeruli, ordered by cluster id if given.
+
+    A second strip below shows the cluster id as categorical bands so you can
+    see at a glance which clusters contain the well- and poorly-predicted
+    glomeruli.
+    """
     q2 = np.asarray(q2, float)
     if glom_clusters is not None:
         order = np.argsort(glom_clusters)
         q2 = q2[order]
-        clusters_ordered = np.asarray(glom_clusters)[order]
-        x_text = [f"c{c}" for c in clusters_ordered]
+        clusters_ordered = np.asarray(glom_clusters)[order].astype(float)
     else:
-        x_text = list(range(q2.size))
-    fig = go.Figure()
-    fig.add_trace(go.Heatmap(
-        z=q2.reshape(1, -1), colorscale="Viridis", zmin=-0.2, zmax=1.0,
-        colorbar=dict(title="Q²", thickness=12),
-    ))
+        clusters_ordered = np.zeros_like(q2)
+
+    fig = make_subplots(
+        rows=2, cols=1, shared_xaxes=True,
+        row_heights=[0.78, 0.22], vertical_spacing=0.04,
+    )
+    # Main strip: Q² per glomerulus. Explicit y coords + range so the
+    # 1-row heatmap has nonzero height in VS Code's notebook renderer.
+    fig.add_trace(
+        go.Heatmap(
+            z=q2.reshape(1, -1),
+            x=np.arange(q2.size), y=[0], dy=1,
+            colorscale="Viridis", zmin=-0.2, zmax=1.0,
+            colorbar=dict(title="Q²", thickness=12, len=0.78, y=0.62),
+            hovertemplate="glom %{x}<br>Q² %{z:.3f}<extra></extra>",
+        ),
+        row=1, col=1,
+    )
+    # Cluster strip
+    fig.add_trace(
+        go.Heatmap(
+            z=clusters_ordered.reshape(1, -1),
+            x=np.arange(q2.size), y=[0], dy=1,
+            colorscale=[[i / 9, c] for i, c in enumerate(QUALITATIVE_COLORS[:10])],
+            zmin=0, zmax=max(9, float(clusters_ordered.max())),
+            showscale=False,
+            hovertemplate="glom %{x}<br>cluster %{z:.0f}<extra></extra>",
+        ),
+        row=2, col=1,
+    )
+    fig.update_yaxes(visible=False, range=[-0.5, 0.5], row=1, col=1)
+    fig.update_yaxes(visible=False, range=[-0.5, 0.5], row=2, col=1,
+                     title="cluster")
+    fig.update_xaxes(title="glomerulus (sorted by cluster)", row=2, col=1)
     fig.update_layout(
-        title=title,
-        xaxis_title="glomerulus (sorted by cluster)",
-        yaxis=dict(visible=False),
-        template="plotly_white",
-        width=900, height=180,
+        title=title, template="plotly_white",
+        width=960, height=320, margin=dict(t=60, b=50, l=40, r=40),
     )
     return fig
 
