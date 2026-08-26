@@ -5,7 +5,8 @@ __version__ = "0.1.0"
 from .config import VariantConfig, ANALYSIS_DEFAULTS, RESULTS_DIR, CONFIGS_DIR
 from .data import PairedData, load_paired, pool_small_groups
 from .preprocess import log1p_positive, row_l2_normalize, build_scaler, ParetoScaler
-from .nulls import homogeneous_gain_null, random_retuning_null, build_null_targets
+from .nulls import (homogeneous_gain_null, random_retuning_null,
+                    diagonal_plus_random_null, build_null_targets)
 from .pls import make_pipeline, fit_pls, extract_B, pls_predict, plsc_svd
 from .cv import make_folds, cross_val_predict_pls, cross_val_score_curve
 from .metrics import (

@@ -75,6 +75,99 @@ def random_retuning_null(
     raise ValueError(f"Unknown null2 mode: {mode!r}")
 
 
+def subset_mix(
+    X: np.ndarray,
+    Y: np.ndarray,
+    rng: np.random.Generator | int | None = None,
+    K: int = 10,
+) -> np.ndarray:
+    """Build a "subset-mix" null.
+
+    For each column j of Y, replace it with the mean of X[:, k] taken across
+    K randomly chosen other glomeruli (k != j, sampled without replacement).
+
+    K=1 reduces to a single-swap variant of Null-2 (without-replacement, j
+    excluded); larger K averages over more donors and produces a high-conc
+    column that approaches the population mean of X as K grows.
+
+    Y itself is unused in the construction but kept in the signature for API
+    parity with the other null builders, and the returned array has the same
+    shape as Y.
+
+    Parameters
+    ----------
+    X : ndarray, shape (n_samples, n_features)
+        Low-concentration response matrix.
+    Y : ndarray, shape (n_samples, n_features)
+        Used only for shape; entries are ignored.
+    rng : Generator or int seed
+    K : int
+        Number of donor glomeruli to average per target glomerulus.
+    """
+    rng_ = np.random.default_rng(rng)
+    X = np.asarray(X, dtype=float)
+    Y = np.asarray(Y, dtype=float)
+    n_gloms = X.shape[1]
+    if K < 1 or K > n_gloms - 1:
+        raise ValueError(f"K must be in [1, n_gloms-1={n_gloms - 1}], got {K}")
+    Y_new = np.zeros_like(Y)
+    all_idx = np.arange(n_gloms)
+    for j in range(n_gloms):
+        candidates = np.setdiff1d(all_idx, [j], assume_unique=True)
+        chosen = rng_.choice(candidates, size=K, replace=False)
+        Y_new[:, j] = X[:, chosen].mean(axis=1)
+    return Y_new
+
+
+def diagonal_plus_random_null(
+    X: np.ndarray,
+    Y: np.ndarray,
+    K: int = 10,
+    rng: np.random.Generator | int | None = None,
+) -> np.ndarray:
+    """Build Null-3 (diagonal + random): a stronger competitor than pure random.
+
+        Y_null[:, j] = alpha_j * X[:, j]   (diagonal: per-glom homogeneous gain == Null-1)
+                       + off[:, j]          (off-diagonal: randomized residual)
+
+    The residual R = Y - diag(gain) carries the cross-glomerular (cluster)
+    structure. Each off[:, j] is the MEAN of the residuals of K randomly chosen
+    OTHER glomeruli (a diffuse mix of many random donors, NOT a single random
+    swap), rescaled so the off-diagonal's total energy matches ||R||_F. This
+    grants the trivial diagonal and *randomizes* the off-diagonal, so the PLS
+    fit on (X, Y_null) has a diagonal but no cluster organization — the right
+    null for asking whether the real off-diagonal is genuinely cluster-structured
+    rather than random mixing layered on a diagonal.
+
+    Parameters
+    ----------
+    X, Y : ndarray, shape (n_samples, n_features)
+    K : int
+        Number of random donor glomeruli averaged into each off-diagonal column.
+    rng : Generator or int seed
+    """
+    rng = np.random.default_rng(rng)
+    X = np.asarray(X, dtype=float)
+    Y = np.asarray(Y, dtype=float)
+    n_rows, n_cols = X.shape
+    num = (X * Y).sum(axis=0)
+    den = (X * X).sum(axis=0)
+    alpha = np.where(den > 0, num / np.where(den > 0, den, 1.0), 0.0)
+    D = X * alpha[np.newaxis, :]
+    R = Y - D
+    K = int(min(max(K, 1), n_cols - 1))
+    off = np.empty_like(R)
+    idx = np.arange(n_cols)
+    for j in range(n_cols):
+        donors = rng.choice(idx[idx != j], size=K, replace=False)
+        off[:, j] = R[:, donors].mean(axis=1)
+    rn = float(np.linalg.norm(R))
+    on = float(np.linalg.norm(off))
+    if on > 0:
+        off *= rn / on                       # energy-match to the real residual
+    return D + off
+
+
 def build_null_targets(
     X: np.ndarray,
     Y: np.ndarray,
