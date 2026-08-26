@@ -43,6 +43,20 @@ QUALITATIVE_COLORS = [
     "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf",
 ]
 
+# Okabe-Ito (2008) — colorblind-safe 8-color palette designed for science viz.
+# Used in topography figures (Figs 6 & 7) where high cluster differentiation
+# matters more than matching the rest of the report's palette.
+OKABE_ITO = [
+    "#E69F00",  # orange
+    "#56B4E9",  # sky blue
+    "#009E73",  # bluish green
+    "#F0E442",  # yellow
+    "#0072B2",  # blue
+    "#D55E00",  # vermilion
+    "#CC79A7",  # reddish purple
+    "#000000",  # black (8th, used only when more than 7 categories needed)
+]
+
 
 # =============================================================================
 # Phase 1 — Selection & validation
@@ -298,6 +312,67 @@ def plot_predicted_vs_actual(
         )
     fig.update_layout(title=title, template="plotly_white",
                       width=900, height=220 * rows)
+    return fig
+
+
+def plot_per_cluster_q2_line(
+    q2: np.ndarray,
+    glom_clusters: np.ndarray,
+    title: str = "Per-cluster Q²",
+) -> go.Figure:
+    """Cluster-mean Q² as a line+markers plot, with individual glomerular
+    Q² as jittered scatter colored by cluster (Okabe-Ito).
+
+    The line is the headline summary (which clusters are best predicted by
+    the linear rule); the scatter shows the within-cluster spread.
+    """
+    df = pd.DataFrame({"q2": np.asarray(q2, dtype=float),
+                       "cluster": np.asarray(glom_clusters)}).dropna()
+    cluster_ids = sorted(int(c) for c in df["cluster"].unique())
+    means = df.groupby("cluster")["q2"].mean().reindex(cluster_ids)
+    stds = df.groupby("cluster")["q2"].std().reindex(cluster_ids)
+
+    fig = go.Figure()
+    # individual glomeruli, jittered horizontally
+    rng = np.random.default_rng(42)
+    for c in cluster_ids:
+        c_q2 = df.loc[df["cluster"] == c, "q2"].to_numpy()
+        xs = c + rng.uniform(-0.18, 0.18, size=len(c_q2))
+        fig.add_trace(go.Scatter(
+            x=xs, y=c_q2, mode="markers",
+            marker=dict(
+                size=7,
+                color=OKABE_ITO[c % len(OKABE_ITO)],
+                opacity=0.55,
+                line=dict(width=0),
+            ),
+            name=f"cluster {c}",
+            showlegend=False,
+            hovertemplate=f"cluster {c}<br>Q²=%{{y:.3f}}<extra></extra>",
+        ))
+    # cluster-mean line with std error bars
+    fig.add_trace(go.Scatter(
+        x=cluster_ids, y=means.to_numpy(), mode="lines+markers",
+        line=dict(color="#222", width=2),
+        marker=dict(size=13, color="#222",
+                    line=dict(color="white", width=1.5)),
+        name="cluster mean ± 1 SD",
+        error_y=dict(type="data", array=stds.to_numpy(), visible=True,
+                     thickness=1.2, width=6, color="#444"),
+        hovertemplate="cluster %{x}<br>mean Q²=%{y:.3f}<extra></extra>",
+    ))
+    # y=0 reference (Q²=0 means "no better than predicting the mean")
+    fig.add_hline(y=0, line=dict(color="#aaa", width=1, dash="dash"))
+    fig.update_layout(
+        title=title,
+        template="plotly_white",
+        width=820, height=460,
+        xaxis=dict(title="NMF cluster",
+                   tickmode="array", tickvals=cluster_ids,
+                   ticktext=[str(c) for c in cluster_ids]),
+        yaxis=dict(title="Q² (held-out)"),
+        legend=dict(orientation="h", yanchor="bottom", y=-0.22),
+    )
     return fig
 
 
@@ -642,6 +717,15 @@ def plot_block_permutation_null(
 # Spatial / topographic overlays
 # =============================================================================
 
+def _square_bounds(xs, ys, pad: float = 0.03) -> tuple[float, float]:
+    """Return (lo, hi) so the same range covers both x and y data, with
+    a small fractional padding. Used to enforce square topography axes."""
+    lo = float(min(float(np.min(xs)), float(np.min(ys))))
+    hi = float(max(float(np.max(xs)), float(np.max(ys))))
+    span = hi - lo
+    return lo - pad * span, hi + pad * span
+
+
 def _coords_dataframe(X) -> pd.DataFrame:
     """Extract (subject, x, y) per glomerulus from a clustered X DataFrame.
 
@@ -675,7 +759,7 @@ def _coords_normalized(X) -> pd.DataFrame:
 def plot_integrated_cluster_map(
     X,
     title: str = "Integrated cluster topography (all subjects, raw x,y)",
-    marker_size: int = 9,
+    marker_size: int = 11,
 ) -> go.Figure:
     """All clusters in different colors, all 4 subjects overlaid in raw x,y
     pixel coordinates (no normalization).
@@ -684,6 +768,7 @@ def plot_integrated_cluster_map(
     so raw pixel coordinates ARE the integrated canvas — no rescaling.
     """
     df = _coords_dataframe(X)
+    lo, hi = _square_bounds(df["x"], df["y"])
     clusters = sorted(df["cluster"].unique())
     fig = go.Figure()
     for c in clusters:
@@ -691,7 +776,7 @@ def plot_integrated_cluster_map(
         fig.add_trace(go.Scatter(
             x=sel["x"], y=sel["y"], mode="markers",
             marker=dict(size=marker_size,
-                        color=QUALITATIVE_COLORS[int(c) % 10],
+                        color=OKABE_ITO[int(c) % len(OKABE_ITO)],
                         opacity=0.55,
                         line=dict(width=0.5, color="black")),
             name=f"cluster {int(c)}",
@@ -706,8 +791,9 @@ def plot_integrated_cluster_map(
         title=title,
         template="plotly_white",
         width=680, height=680,
-        xaxis=dict(title="x (pixels)", scaleanchor="y", scaleratio=1),
-        yaxis=dict(title="y (pixels)", autorange="reversed"),
+        xaxis=dict(title="x (pixels)", range=[lo, hi],
+                   scaleanchor="y", scaleratio=1, constrain="domain"),
+        yaxis=dict(title="y (pixels)", range=[hi, lo], constrain="domain"),
         legend=dict(title="NMF cluster", itemsizing="constant"),
     )
     return fig
@@ -717,7 +803,7 @@ def plot_integrated_top_blocks(
     X,
     top_blocks: list[tuple[int, int, float]],
     title: str = "Top off-diagonal blocks, all subjects integrated",
-    marker_size: int = 10,
+    marker_size: int = 13,
 ) -> go.Figure:
     """One panel per top off-diagonal block (predictor → predicted). All 4
     subjects' gloms are overlaid in raw x,y pixel coordinates.
@@ -727,9 +813,10 @@ def plot_integrated_top_blocks(
     ⚪ gray = all other gloms
     """
     df = _coords_dataframe(X)
+    lo, hi = _square_bounds(df["x"], df["y"])
     n_pairs = len(top_blocks)
-    PRED_COLOR = QUALITATIVE_COLORS[0]
-    TGT_COLOR = QUALITATIVE_COLORS[3]
+    PRED_COLOR = OKABE_ITO[4]   # blue
+    TGT_COLOR = OKABE_ITO[5]    # vermilion
 
     subplot_titles = [
         f"<span style='color:{PRED_COLOR}'>low-c{cf}</span> → "
@@ -747,16 +834,17 @@ def plot_integrated_top_blocks(
         df_panel["role"] = "other"
         df_panel.loc[df_panel["cluster"] == cf, "role"] = "predictor"
         df_panel.loc[df_panel["cluster"] == ct, "role"] = "predicted"
-        for role, color, size, alpha in [
-            ("other", "rgba(180,180,180,0.30)", marker_size - 3, None),
-            ("predictor", PRED_COLOR, marker_size, 0.65),
-            ("predicted", TGT_COLOR, marker_size, 0.65),
+        for role, color, size, alpha, edge in [
+            ("other", "rgba(180,180,180,0.30)", marker_size, None, None),
+            ("predictor", PRED_COLOR, marker_size, 0.81, dict(width=0.4, color="black")),
+            ("predicted", TGT_COLOR, marker_size, 0.81, dict(width=0.4, color="black")),
         ]:
             sel = df_panel[df_panel["role"] == role]
             if len(sel) == 0:
                 continue
-            marker = dict(size=size, color=color,
-                          line=dict(width=0.4, color="black"))
+            marker = dict(size=size, color=color)
+            if edge is not None:
+                marker["line"] = edge
             if alpha is not None:
                 marker["opacity"] = alpha
             fig.add_trace(go.Scatter(
@@ -772,11 +860,14 @@ def plot_integrated_top_blocks(
                 ),
                 customdata=sel[["cluster", "subject"]].to_numpy(),
             ), row=1, col=j)
-        fig.update_xaxes(title="x (pixels)",
+        fig.update_xaxes(title="x (pixels)", range=[lo, hi],
                          scaleanchor=f"y{j if j > 1 else ''}",
-                         scaleratio=1, row=1, col=j)
-        fig.update_yaxes(autorange="reversed", row=1, col=j)
+                         scaleratio=1, constrain="domain",
+                         row=1, col=j)
+        fig.update_yaxes(range=[hi, lo], constrain="domain",
+                         row=1, col=j)
     fig.update_yaxes(title="y (pixels)", row=1, col=1)
+    panel_px = 460
     fig.update_layout(
         title=(
             f"{title}<br>"
@@ -785,8 +876,101 @@ def plot_integrated_top_blocks(
             f"<span style='color:{TGT_COLOR}'>red = predicted</span></sub>"
         ),
         template="plotly_white",
-        width=420 * n_pairs + 60, height=500,
+        width=panel_px * n_pairs + 80, height=panel_px + 140,
         legend=dict(orientation="h", yanchor="bottom", y=-0.15),
+    )
+    return fig
+
+
+def plot_per_subject_top_blocks(
+    X,
+    top_blocks: list[tuple[int, int, float]],
+    title: str = "Top off-diagonal blocks, per subject",
+    marker_size: int = 11,
+) -> go.Figure:
+    """Per-subject version of plot_integrated_top_blocks: a grid of
+    (subjects × top-block-pairs) panels in raw x,y pixel coords. Common
+    square bounds across all panels so subjects are visually comparable.
+    """
+    df = _coords_dataframe(X)
+    lo, hi = _square_bounds(df["x"], df["y"])
+    subjects = sorted(int(s) for s in df["subject"].unique())
+    n_subj = len(subjects)
+    n_pairs = len(top_blocks)
+    PRED_COLOR = OKABE_ITO[4]   # blue
+    TGT_COLOR = OKABE_ITO[5]    # vermilion
+
+    subplot_titles = []
+    for s in subjects:
+        for (cf, ct, val) in top_blocks:
+            subplot_titles.append(
+                f"subj {s}: "
+                f"<span style='color:{PRED_COLOR}'>c{cf}</span>→"
+                f"<span style='color:{TGT_COLOR}'>c{ct}</span>"
+            )
+
+    fig = make_subplots(
+        rows=n_subj, cols=n_pairs,
+        subplot_titles=subplot_titles,
+        horizontal_spacing=0.04, vertical_spacing=0.07,
+        shared_yaxes=False, shared_xaxes=False,
+    )
+
+    legend_shown = False
+    for i, subj in enumerate(subjects, start=1):
+        df_subj = df[df["subject"].astype(int) == subj]
+        for j, (cf, ct, _) in enumerate(top_blocks, start=1):
+            df_panel = df_subj.copy()
+            df_panel["role"] = "other"
+            df_panel.loc[df_panel["cluster"] == cf, "role"] = "predictor"
+            df_panel.loc[df_panel["cluster"] == ct, "role"] = "predicted"
+            for role, color, alpha, edge in [
+                ("other", "rgba(180,180,180,0.30)", None, None),
+                ("predictor", PRED_COLOR, 0.81, dict(width=0.4, color="black")),
+                ("predicted", TGT_COLOR, 0.81, dict(width=0.4, color="black")),
+            ]:
+                sel = df_panel[df_panel["role"] == role]
+                if len(sel) == 0:
+                    continue
+                marker = dict(size=marker_size, color=color)
+                if edge is not None:
+                    marker["line"] = edge
+                if alpha is not None:
+                    marker["opacity"] = alpha
+                fig.add_trace(go.Scatter(
+                    x=sel["x"], y=sel["y"], mode="markers",
+                    marker=marker,
+                    name=role,
+                    legendgroup=role,
+                    showlegend=(not legend_shown),
+                    hovertemplate=(
+                        f"<b>{role}</b><br>"
+                        f"subject {subj}<br>"
+                        "cluster %{customdata[0]}<extra></extra>"
+                    ),
+                    customdata=sel[["cluster"]].to_numpy(),
+                ), row=i, col=j)
+            axis_idx = (i - 1) * n_pairs + j
+            anchor = f"y{axis_idx}" if axis_idx > 1 else "y"
+            fig.update_xaxes(range=[lo, hi],
+                             scaleanchor=anchor, scaleratio=1,
+                             constrain="domain", row=i, col=j)
+            fig.update_yaxes(range=[hi, lo], constrain="domain",
+                             row=i, col=j)
+            legend_shown = True
+
+    panel_px = 320
+    fig.update_layout(
+        title=(
+            f"{title}<br>"
+            f"<sub>Raw x,y pixel coords. "
+            f"<span style='color:{PRED_COLOR}'>blue = predictor</span> · "
+            f"<span style='color:{TGT_COLOR}'>red = predicted</span></sub>"
+        ),
+        template="plotly_white",
+        width=panel_px * n_pairs + 100,
+        height=panel_px * n_subj + 160,
+        legend=dict(orientation="h", yanchor="bottom", y=-0.04),
     )
     return fig
 
