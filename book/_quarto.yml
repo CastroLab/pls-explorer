@@ -1,0 +1,95 @@
+project:
+  type: book
+  output-dir: _book
+
+book:
+  title: "Concentration broadening in the olfactory bulb"
+  subtitle: "A structured, low-rank, cluster-aligned linear map"
+  author:
+    - name: Jason B. Castro
+      affiliations:
+        - name: Bates College
+          department: Neuroscience Program
+  date: today
+  date-format: "MMMM D, YYYY"
+
+  chapters:
+    - index.qmd
+    - main.ipynb
+    - model-zoo.ipynb
+    - references.qmd
+
+  appendices: []
+
+  page-footer:
+    left: "© 2026 · Castro Lab"
+    right: "Built with [Quarto](https://quarto.org)"
+
+  search:
+    location: sidebar
+    type: textbox
+
+  sidebar:
+    style: docked
+    background: light
+    pinned: true
+    collapse-level: 2
+
+  page-navigation: true
+  reader-mode: true
+
+bibliography: references.bib
+csl: https://www.zotero.org/styles/nature-neuroscience
+
+format:
+  html:
+    theme:
+      light: [cosmo, custom.scss]
+      dark: [darkly, custom-dark.scss]
+    css: extra.css
+    mainfont: "Inter, -apple-system, system-ui, sans-serif"
+    monofont: "JetBrains Mono, SF Mono, Menlo, monospace"
+    fontsize: "1.0rem"
+    linestretch: 1.55
+    code-fold: false
+    code-tools: true
+    code-overflow: wrap
+    code-line-numbers: false
+    code-copy: hover
+    toc: true
+    toc-depth: 3
+    toc-title: "On this page"
+    number-sections: true
+    number-depth: 2
+    fig-cap-location: bottom
+    tbl-cap-location: top
+    smooth-scroll: true
+    anchor-sections: true
+    link-external-icon: true
+    link-external-newwindow: true
+    fig-align: center
+    callout-appearance: default
+    callout-icon: true
+
+  pdf:
+    documentclass: scrreprt
+    papersize: letter
+    geometry:
+      - margin=1in
+    fig-pos: "H"
+    code-overflow: wrap
+    fontsize: 11pt
+    colorlinks: true
+    keep-tex: false
+
+execute:
+  enabled: false
+  freeze: true
+
+# Custom project-level metadata (not in Quarto's strict `book:` schema, so kept
+# at top level). Referenced by index.qmd via the styled `.data-provided-by` div.
+data-provided-by:
+  - name: Matt Wachowiak
+    affiliation: "University of Utah"
+  - name: Shawn Burton
+    affiliation: "University of Utah"

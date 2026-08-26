@@ -1,0 +1,272 @@
+/*-- scss:defaults --*/
+
+// Okabe-Ito-derived accent palette (matches the topography figures)
+$okabe-blue:       #0072B2;
+$okabe-vermilion:  #D55E00;
+$okabe-green:      #009E73;
+$okabe-orange:     #E69F00;
+
+// Override Bootstrap brand colors with Okabe-Ito blue/vermilion
+$primary:    $okabe-blue;
+$secondary:  $okabe-vermilion;
+$success:    $okabe-green;
+$warning:    $okabe-orange;
+$link-color: $okabe-blue;
+
+// Typography — serif body for reading comfort, sans for headings + UI
+$font-family-sans-serif: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+$font-family-serif:      "Source Serif Pro", "Iowan Old Style", "Charter", Georgia, serif;
+$font-family-monospace:  "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+$body-font-family:       $font-family-serif;
+$headings-font-family:   $font-family-sans-serif;
+$headings-font-weight:   600;
+
+// Body text feel
+$body-color:             #1f2328;
+$body-bg:                #fdfdfd;
+$body-text-align:        left;
+$font-size-base:         1.0rem;
+$line-height-base:       1.7;
+
+// Sidebar: a touch warmer than pure white
+$sidebar-bg:             #f7f6f3;
+$sidebar-fg:             #2a2a2a;
+
+// Code blocks
+$code-bg:                #f6f8fa;
+$code-color:             #24292f;
+
+// Headings should be a bit darker than body for hierarchy
+$headings-color:         #11151c;
+
+/*-- scss:rules --*/
+
+// ---------- typographic polish ----------
+
+body {
+  font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+  margin-top: 2.4rem;
+  margin-bottom: 1rem;
+}
+
+h1 {
+  font-size: 2.05rem;
+  font-weight: 700;
+  border-bottom: 1px solid #e1e4e8;
+  padding-bottom: 0.5rem;
+  margin-top: 2rem;
+}
+
+h2 {
+  font-size: 1.55rem;
+  color: $okabe-blue;
+}
+
+h3 {
+  font-size: 1.25rem;
+}
+
+// Readable paragraph width — keep lines from running too wide on big monitors
+.content .quarto-section-content,
+main.content {
+  max-width: 760px;
+}
+
+// ---------- bold/strong should pop just a touch ----------
+
+strong, b {
+  color: #11151c;
+  font-weight: 650;
+}
+
+// ---------- figure captions ----------
+
+figcaption.figure-caption,
+.figure-caption,
+p > em:first-child:last-child {
+  font-size: 0.94rem;
+  line-height: 1.55;
+  color: #4a5057;
+}
+
+// Pull-out style for figure captions in chapter bodies
+.quarto-figure figcaption {
+  border-left: 3px solid $okabe-blue;
+  padding-left: 0.9rem;
+  margin-top: 0.7rem;
+  font-style: italic;
+}
+
+// ---------- "intuition" parenthetical sidebar styling ----------
+// Match the "(*Intuition: ...*)" pattern the analysis uses heavily.
+// Render any single-paragraph italic-in-parens as a subtle callout.
+
+p:has(em:only-child) {
+  background: #fbf7ec;
+  border-left: 3px solid $okabe-orange;
+  padding: 0.65rem 1rem;
+  border-radius: 2px;
+  margin: 1.1rem 0;
+}
+
+p:has(em:only-child) em {
+  font-style: italic;
+  color: #4a3f1f;
+}
+
+// ---------- blockquotes ----------
+
+blockquote {
+  border-left: 4px solid $okabe-blue;
+  padding-left: 1.1rem;
+  color: #34373b;
+  font-style: italic;
+  margin: 1.4rem 0;
+}
+
+// ---------- code blocks ----------
+
+pre.sourceCode,
+div.sourceCode {
+  border-radius: 6px;
+  border: 1px solid #e1e4e8;
+  margin: 1.2rem 0;
+}
+
+code:not(pre code) {
+  background: #f6f8fa;
+  padding: 0.15em 0.35em;
+  border-radius: 3px;
+  font-size: 0.92em;
+  color: #d1378b;
+}
+
+// ---------- tables ----------
+
+table {
+  font-size: 0.95rem;
+  margin: 1.5rem 0;
+}
+
+th {
+  background: #f7f6f3;
+  font-weight: 600;
+  border-bottom: 2px solid #d0cfca;
+}
+
+// ---------- sidebar / TOC polish ----------
+
+#quarto-sidebar {
+  border-right: 1px solid #e8e6df;
+}
+
+.sidebar-item-text {
+  font-family: $font-family-sans-serif;
+  font-size: 0.95rem;
+}
+
+#TOC, #quarto-document-content > #quarto-margin-sidebar {
+  font-family: $font-family-sans-serif;
+  font-size: 0.88rem;
+}
+
+#TOC .nav-link {
+  border-left: 2px solid transparent;
+  padding: 0.2rem 0.6rem;
+  margin: 0.1rem 0;
+  transition: all 0.15s ease;
+}
+
+#TOC .nav-link.active {
+  border-left-color: $okabe-vermilion;
+  background: #fdf0e8;
+  color: $okabe-vermilion;
+  font-weight: 500;
+}
+
+// ---------- title block ----------
+
+#title-block-header {
+  margin-top: 1.5rem;
+  margin-bottom: 2rem;
+  padding-bottom: 1.4rem;
+  border-bottom: 1px solid #e1e4e8;
+}
+
+#title-block-header .title {
+  font-family: $font-family-sans-serif;
+  font-weight: 700;
+  font-size: 2.4rem;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+#title-block-header .subtitle {
+  color: #5a5e64;
+  font-size: 1.2rem;
+  font-weight: 400;
+  font-style: italic;
+  margin-top: 0.6rem;
+}
+
+// ---------- "data provided by" byline (landing page) ----------
+
+.data-provided-by {
+  font-family: $font-family-sans-serif;
+  font-size: 0.95rem;
+  color: #5a5e64;
+  padding: 0.65rem 0.95rem;
+  margin: -0.5rem 0 1.8rem 0;
+  border-left: 3px solid $okabe-vermilion;
+  background: #faf6f1;
+  border-radius: 2px;
+  letter-spacing: 0.01em;
+}
+
+.data-provided-by strong {
+  color: #2a2a2a;
+  font-weight: 600;
+}
+
+.data-provided-by em {
+  color: #6b7079;
+  font-size: 0.92em;
+}
+
+// ---------- callouts ----------
+
+.callout {
+  margin: 1.4rem 0;
+  border-radius: 6px;
+  border-left-width: 5px;
+}
+
+// ---------- horizontal rule ----------
+
+hr {
+  margin: 2.5rem 0;
+  border: 0;
+  border-top: 1px solid #d8dbe0;
+}
+
+// ---------- inline math + emphasis spacing ----------
+
+.math.inline {
+  font-size: 1.02em;
+}
+
+// ---------- print styles ----------
+
+@media print {
+  #quarto-sidebar, .quarto-title-banner, #quarto-margin-sidebar {
+    display: none;
+  }
+  main.content { max-width: 100%; }
+}

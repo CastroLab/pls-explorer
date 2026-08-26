@@ -1,0 +1,65 @@
+/*-- scss:defaults --*/
+
+// Okabe-Ito accent colors, slightly brightened for dark backgrounds
+$okabe-blue:       #4FB0E8;
+$okabe-vermilion:  #FF8444;
+$okabe-green:      #2BC397;
+$okabe-orange:     #FFC04C;
+
+$primary:    $okabe-blue;
+$secondary:  $okabe-vermilion;
+$link-color: $okabe-blue;
+
+// Typography
+$font-family-sans-serif: "Inter", -apple-system, sans-serif;
+$font-family-serif:      "Source Serif Pro", "Charter", Georgia, serif;
+$body-font-family:       $font-family-serif;
+$headings-font-family:   $font-family-sans-serif;
+$body-color:             #c9d1d9;
+$body-bg:                #0d1117;
+$headings-color:         #f0f6fc;
+$sidebar-bg:             #161b22;
+$code-bg:                #1a1f27;
+$code-color:             #e6edf3;
+
+/*-- scss:rules --*/
+
+h2 { color: $okabe-blue; }
+
+p:has(em:only-child) {
+  background: rgba(255, 192, 76, 0.07);
+  border-left: 3px solid $okabe-orange;
+  padding: 0.65rem 1rem;
+  border-radius: 2px;
+  margin: 1.1rem 0;
+}
+
+p:has(em:only-child) em {
+  color: #e0d5b0;
+}
+
+code:not(pre code) {
+  background: #1a1f27;
+  color: #ff8fc1;
+  padding: 0.15em 0.35em;
+  border-radius: 3px;
+}
+
+#TOC .nav-link.active {
+  border-left-color: $okabe-vermilion;
+  background: rgba(255, 132, 68, 0.1);
+  color: $okabe-vermilion;
+}
+
+.quarto-figure figcaption {
+  border-left: 3px solid $okabe-blue;
+  padding-left: 0.9rem;
+  font-style: italic;
+  color: #9aa4b0;
+}
+
+table th {
+  background: #161b22;
+  color: #f0f6fc;
+  border-bottom: 2px solid #30363d;
+}

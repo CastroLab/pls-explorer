@@ -1,0 +1,82 @@
+---
+title: "Preface"
+---
+
+::: {.data-provided-by}
+**Data provided by:** Matt Wachowiak, Shawn Burton · *University of Utah*
+:::
+
+This is a guided tour through an analysis of how the mouse olfactory bulb
+represents odor concentration. The data are paired glomerular
+calcium-imaging responses recorded by the Wachowiak lab at the University
+of Utah: ~400 imaged glomeruli concatenated across four mice, exposed to
+the same 59 odorants at two concentrations [@burton2022olfactory]. The
+basic question is: **how does the high-concentration glomerular pattern
+relate to the low-concentration one?** Per-glomerulus amplification?
+Group-level remixing? Something less structured? etc.
+
+The punchline is that the remapping is a **structured, low-rank,
+cluster-aligned linear map**. A partial-least-squares regression with eight
+latent components captures most of the predictable held-out variance; the
+remaining nonlinear structure is small enough that a 20-model horse race
+— covering kernel methods, tree ensembles, neural nets, and local methods
+— finds no method that substantially beats the linear ceiling. The
+coefficient matrix `B` is organized by NMF receptor-class clusters: about
+40% of `B`'s predictive energy lives in within-cluster blocks (≈ 50σ above
+a cluster-label permutation null), and the cluster-block structure
+reproduces across all five preprocessing variants we tested and across a
+completely different estimator (full-rank ridge regression). In a
+nutshell, concentration coding, in the bulb, obeys group-specific rules,
+and the groups are defined by their similar tuning.
+
+## How this book is organized
+
+[**The Analysis**](main.ipynb) — the main story, in five sections plus an
+appendix. §1 establishes that a linear rule exists. §2 places `B`
+between two domain-specific nulls (multiplicative gain vs. random
+retuning). §3 introduces the cluster-block decomposition and shows
+that `B`'s structure is organized by NMF clusters. §4 confirms the
+clusters are anatomically real on the dorsal OB. §5 pulls the three
+claims into a synthesis. The appendix carries the LV1 outer-product
+loadings, a model-zoo comparison, and a methods footnote section.
+
+[**The Model Zoo**](model-zoo.ipynb) — the full horse race that the appendix
+summarizes. Twenty regression methods, family-stratified 4-fold CV, same
+preprocessing as the canonical pipeline. RidgeCV wins; no nonlinear method
+notably beats it. The chapter is a sibling artifact to the main analysis,
+useful for confirming that the linear-rule claim isn't an artifact of
+choosing PLS-R specifically.
+
+[**References**](references.qmd) — the canonical sources cited throughout.
+
+## Reading notes
+
+The figures are interactive Plotly objects. Hover for hover-text; click on
+legend entries to toggle traces; double-click to isolate a single trace.
+The chapters render the same notebooks (`notebooks/CONSOLIDATED.ipynb`
+and `notebooks/03_model_zoo.ipynb`) that the analysis was developed in,
+so any figure you see in the rendered book is reproducible by running
+those notebooks against the canonical results in `results/baseline/`.
+
+Code cells in each chapter are *shown* by default but collapsible via the
+`</> Code` button in the top-right of each page. Section anchors are
+linkable.
+
+## Acknowledgments {.unnumbered}
+
+The data and the framing of the problem come from Matt Wachowiak and Shawn
+Burton at the University of Utah. The two nulls the analysis is anchored
+on — multiplicative gain and random retuning — are theirs. The
+chemometrics machinery (PLS-R, component-selection criteria, permutation
+nulls) draws on the Krishnan et al. tutorial [@krishnan2011partial] and the
+Van der Voet randomization test [@vandervoet1994comparing]. The Okabe-Ito
+palette used in the topographic figures is by Okabe & Ito (2008).
+
+The original messy notebooks live in `~/code/castro-lab-codebase`; this
+analysis is the clean rewrite in `~/code/pls-explorer`, sibling to the
+broader `~/code/glom-explorer` package.
+
+---
+
+*Last updated:* `r format(Sys.Date(), "%B %d, %Y")` (Quarto renders this
+on every build.)

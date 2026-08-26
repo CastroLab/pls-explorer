@@ -1,0 +1,31 @@
+---
+title: "References"
+---
+
+::: {.callout-note appearance="simple"}
+References cited in the preface and main analysis. The bibliographic
+metadata is in `references.bib`; in-text citations use the
+[`@citekey`]{.literal} syntax that Quarto resolves at render time.
+:::
+
+::: {#refs}
+:::
+
+## Supplementary pointers {.unnumbered}
+
+These aren't formal citations but are useful entry points if you want to
+chase the lineage of the analysis or the surrounding literature.
+
+- **The methodology reference doc** for this project, which informed
+  preprocessing choices and figure-roster decisions, lives in the Castro
+  Lab Obsidian vault under
+  `Odormapping/Resources/PLS Analysis Best Practices for Paired Neural Population Data.md`.
+- **The Wachowiak/Burton handoff email** establishing the two null models
+  (multiplicative gain and random retuning) is summarised in
+  `Odormapping/Resources/resource-071.md`.
+- **Sibling repos.** `~/code/glom-explorer` carries the clustering,
+  tuning, topography, and bundled data utilities; `~/code/pls-explorer`
+  (this analysis) is sibling to it and will eventually fold back in as
+  `glom_explorer/pls/`.
+- **The original messy notebooks** that preceded the clean rewrite live
+  at `~/code/castro-lab-codebase/notebooks/modeling/PLS_play{1,2,3}.ipynb`.

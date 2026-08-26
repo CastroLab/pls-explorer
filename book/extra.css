@@ -1,0 +1,31 @@
+/* Web font imports for body + headings + code. Quarto applies the font-family
+   names declared in custom.scss; this file ensures the actual font files load. */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+Pro:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap');
+
+/* Tiny niceties that are easier in plain CSS than SCSS. */
+
+/* Soft hover for sidebar items */
+.sidebar-item-text:hover {
+  color: #0072B2;
+  transition: color 0.12s ease-in-out;
+}
+
+/* Better target padding for anchor links so the heading isn't tucked under the nav */
+:target {
+  scroll-margin-top: 5rem;
+}
+
+/* Plotly figure containers — give them a hint of breathing room */
+.js-plotly-plot,
+.plot-container {
+  margin: 1.5rem auto 1rem auto;
+}
+
+/* Footnotes feel cleaner with a touch more vertical space */
+.footnotes {
+  font-size: 0.93rem;
+  border-top: 1px solid #e1e4e8;
+  margin-top: 3rem;
+  padding-top: 1rem;
+}
