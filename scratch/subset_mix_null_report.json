@@ -1,0 +1,37 @@
+[
+  {
+    "K": 5,
+    "q2": 0.29610778840720353,
+    "diagonality": 0.003171651598569074,
+    "within_cluster_energy": 0.1622447141059458,
+    "description": "no diagonal, diffuse off-diagonal mass, substantial predictivity"
+  },
+  {
+    "K": 10,
+    "q2": 0.3459152647483603,
+    "diagonality": 0.002653412303321459,
+    "within_cluster_energy": 0.16394457340176674,
+    "description": "no diagonal, diffuse off-diagonal mass, substantial predictivity"
+  },
+  {
+    "K": 25,
+    "q2": 0.4475114725523731,
+    "diagonality": 0.0022021236818424053,
+    "within_cluster_energy": 0.1327962362617543,
+    "description": "no diagonal, diffuse off-diagonal mass, substantial predictivity"
+  },
+  {
+    "K": 50,
+    "q2": 0.5343319260890449,
+    "diagonality": 0.0022350115104208777,
+    "within_cluster_energy": 0.1389517385366227,
+    "description": "no diagonal, diffuse off-diagonal mass, substantial predictivity"
+  },
+  {
+    "K": 100,
+    "q2": 0.6308843297847362,
+    "diagonality": 0.002231549040822667,
+    "within_cluster_energy": 0.14461254391505898,
+    "description": "no diagonal, diffuse off-diagonal mass, substantial predictivity"
+  }
+]

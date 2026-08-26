@@ -1,0 +1,35 @@
+{
+  "alpha_star": 100.0,
+  "pls": {
+    "name": "PLS-R k=8 (canonical)",
+    "shape": [
+      376,
+      376
+    ],
+    "||B||_F\u00b2": 24.58574076094028,
+    "diagonality": 0.01812278465963125,
+    "E_within/E_total": 0.39765747884926134,
+    "E_between/E_total": 0.6023425211507387,
+    "perm null mean": 0.17144988921343457,
+    "perm null std": 0.0047176889636365085,
+    "\u03c3 above null": 47.948813789847755,
+    "perm p": 0.0
+  },
+  "ridge": {
+    "name": "RidgeCV",
+    "shape": [
+      376,
+      376
+    ],
+    "||B||_F\u00b2": 52.510362666818786,
+    "diagonality": 0.033398673537022354,
+    "E_within/E_total": 0.4065758994950284,
+    "E_between/E_total": 0.5934241005049716,
+    "perm null mean": 0.1842860533750023,
+    "perm null std": 0.003949465642404884,
+    "\u03c3 above null": 56.283524468052036,
+    "perm p": 0.0
+  },
+  "cos_B": 0.6182924384511458,
+  "cos_block_norm": 0.9908362370768639
+}
